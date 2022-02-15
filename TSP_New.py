@@ -1,4 +1,5 @@
 # Ashutosh Tripathi  - FH9936
+# Harita Trivedi  - AD5894
 #This code solves the Travelling Salesman Problem using GA
 
 # Given  - Each city needs to be visited exactly once
