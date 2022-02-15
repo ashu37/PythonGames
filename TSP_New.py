@@ -194,9 +194,17 @@ def genetic_algorithm(
  
 
 ## calling the GA with num of population, num of iteration, crossover
+
+"""
 best, history = genetic_algorithm(
-    cities, adjacency_matrix, num_population=1000, selectivity=0.05,
-    p_mut=0.05, cross=0.7, num_iter=9000, print_interval=500, verbose=False, return_history=True
+    cities, adjacency_matrix, num_population=500, selectivity=0.15,
+    p_mut=0.1, cross=0.5, num_iter=6000, print_interval=500, verbose=False, return_history=True
+)  - 2297 - score
+"""
+# 2211 - score
+best, history = genetic_algorithm(
+    cities, adjacency_matrix, num_population=500, selectivity=0.05,
+    p_mut=0.05, cross=0.7, num_iter=6000, print_interval=500, verbose=False, return_history=True
 )
 
 for i in best:
