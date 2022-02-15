@@ -1,16 +1,29 @@
 # Ashutosh Tripathi  - FH9936
 #This code solves the Travelling Salesman Problem using GA
 
+# Given  - Each city needs to be visited exactly once
+#Return to the original City   - Total distance is the  calcuated accordingly
+
+#Approach -GA
+# 1. Create  a population
+# 2. Determine the Fitness
+# 3, Select the mating pool
+# 4. Breed, Mutate
+# 5. Repeat
+
 import numpy as np
 np.random.seed(42)
 
-cities = [0, 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26]
+cities = [0, 1, 2, 3, 4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20,21,22,23,24,25,26] # Define the list of 27 cities starting from 0-26
 
+# Mapping the city number with Actual City Name given in the Problem
 map_cities= {0:"Bakersfield",1:"Barstow" ,2: "Carlsbad", 3: "Eureka", 4:"Fresno" ,5:"Lake Tahoe,So" ,6: "Las Vegas" ,7:"Long Beach" ,8:"Los Angeles",9: "Merced" ,10:"Modesto",
             11:"Monterey", 12: "Oakland",13:"Palm Springs",14:"Redding",15:"Sacramento",16:"San Benardino" ,17:"San Diego",18:"San Francisco",19:"San Jose",20:"San Luis Obispo",21:"Santa Barbara",
             22:"San Cruz",23:"Santa Rosa",24: "Sequoia Park", 25: "Stockton",26:"Yosemite"}
+
 result =[]
-adjacency_mat = np.asarray(
+# Creating a Matrix that has value of distance from CITY A to CITY B and vice versa  the values are given in the problem.
+adjacency_matrix = np.asarray(
     [
         [  0.00, 129.00, 206.00, 569.00, 107.00, 360.00, 284.00, 144.00, 115.00, 162.00, 200.00, 231.00, 288.00, 226.00, 436.00, 272.00, 174.00, 231.00, 297.00, 252.00, 118.00, 146.00, 258.00, 347.00, 121.00, 227.00, 200.00 ],
         [129.00,   0.00, 153.00, 696.00, 236.00, 395.00, 155.00, 139.00, 130.00, 291.00, 329.00, 360.00, 417.00, 123.00, 565.00, 401.00,  71.00, 176.00, 426.00, 381.00, 247.00, 225.00, 387.00, 476.00, 250.00, 356.00, 329.00 ],
@@ -41,50 +54,67 @@ adjacency_mat = np.asarray(
         [200.00, 329.00, 408.00, 488.00,  93.00, 133.00, 435.00, 344.00, 315.00,  81.00, 119.00, 199.00, 207.00, 426.00, 355.00, 191.00, 374.00, 431.00, 216.00, 195.00, 230.00, 335.00, 199.00, 266.00, 175.00, 146.00,   0.00 ],        
     ]
 )
-
+# Define a class to Represent the population - to get together all the pieces requried for a specific gen
+# Here some variables  
 class Population():
-    def __init__(self, bag, adjacency_mat):
-        self.bag = bag
-        self.parents = []
-        self.score = 0
-        self.best = None
-        self.adjacency_mat = adjacency_mat
-        
-    def fitness(self, chromosome):
+    def __init__(self, full_pop, adjacency_matrix):
+        self.full_pop = full_pop                                # represents the full population
+        self.parents = []                                       # to represent the few selected from the superior values
+        self.score = 0                                          # to store the score best chromosome [here the optimal path]
+        self.best = None                                        # to store the best Chromosome [optimal path itself]
+        self.adjacency_matrix = adjacency_matrix                # matrix that as the distance values
+   
+   # the fitness function is used to determine the fitness of the chromosome 
+   # In TSP we are determining the fitness by - shorter total distance    
+    def fitness(self, chr):
         return sum(
         [
-            self.adjacency_mat[chromosome[i], chromosome[i + 1]]
-            for i in range(len(chromosome) - 1)
+            self.adjacency_matrix[chr[i], chr[i + 1]]
+            for i in range(len(chr) - 1)
         ]
     )
-        
+    
+    # the evaluate function  - calculates the fitness of each chromosome in the full population 
+    # Determining the best and storing the score and returning the probability that element in the Full population can be chosen as a Parent
     def evaluate(self):
         distances = np.asarray(
-        [self.fitness(chromosome) for chromosome in self.bag]
+        [self.fitness(chr) for chr in self.full_pop]
         )
         self.score = np.min(distances)
-        self.best = self.bag[distances.tolist().index(self.score)]
+        self.best = self.full_pop[distances.tolist().index(self.score)]
         self.parents.append(self.best)
         if False in (distances[0] == distances):
             distances = np.max(distances) - distances
         return distances / np.sum(distances)
     
-    def select(self, k=4):
+    # Now we are select k number of parents here we are taking 10 parents as the basis of next generation 
+    # a Simple method that compares the probability and a random number - if the probability is higher than add that path /Chromosome to Parents. Here do it for 10 times as K is 10 
+    def select(self, k=10):
         fit = self.evaluate()
         while len(self.parents) < k:
             idx = np.random.randint(0, len(fit))
             if fit[idx] > np.random.rand():
-                self.parents.append(self.bag[idx])
+                self.parents.append(self.full_pop[idx])
         self.parents = np.asarray(self.parents)
     
+   # Main part - MUTATION
+   # We are using the SWAP and CROSSOVER Mutation 
+   #Just swapping is a disruptive process so we are using crossover
+   # the crossover  function - grab 2 parents and slice a portion of the optimal path /chromosome and fill the rest slots with other parent without duplicates in the path
     
+    def swap(self,chr):
+        a, b = np.random.choice(len(chr), 2)
+        chr[a], chr[b] = (
+            chr[b],
+            chr[a],
+        )
+        return chr
     
-    
-    def crossover(self, p_cross=0.1):
+    def crossover(self, cross=0.1):
         children = []
         count, size = self.parents.shape
-        for _ in range(len(self.bag)):
-            if np.random.rand() > p_cross:
+        for _ in range(len(self.full_pop)):
+            if np.random.rand() > cross:
                 children.append(
                     list(self.parents[np.random.randint(count, size=1)[0]])
                 )
@@ -106,51 +136,48 @@ class Population():
                 children.append(child)
         return children
     
-    
-    def mutate(self, p_cross=0.1, p_mut=0.1):
-        next_bag = []
-        children = self.crossover(p_cross)
+    # wrapping the swap and the crossover function in Mutate function - so perform mutation based on condition
+    def mutate(self, cross=0.1, p_mut=0.1):
+        next_full_pop = []
+        children = self.crossover(cross)
         for child in children:
             if np.random.rand() < p_mut:
-                next_bag.append(swap(child))
+                swapped_child = self.swap(child)
+                next_full_pop.append(swapped_child)
             else:
-                next_bag.append(child)
-        return next_bag
+                next_full_pop.append(child)
+        return next_full_pop
     
-def init_population(cities, adjacency_mat, n_population):
+# this generating the first gen of population
+def init_population(cities, adjacency_matrix, num_population):
         return Population(
-        np.asarray([np.random.permutation(cities) for _ in range(n_population)]), 
-        adjacency_mat
+        np.asarray([np.random.permutation(cities) for _ in range(num_population)]), 
+        adjacency_matrix
     )
-pop = init_population(cities, adjacency_mat, 5)
+pop = init_population(cities, adjacency_matrix, 5)
 
 
-def swap(chromosome):
-        a, b = np.random.choice(len(chromosome), 2)
-        chromosome[a], chromosome[b] = (
-            chromosome[b],
-            chromosome[a],
-        )
-        return chromosome
-    
+
+# Main GA algo combine all the function to generate the optimal path
+# Main focus - generate childern from mutation and then pass childern as full population of next generation in the Population class. [Line 189 and 190]   
 def genetic_algorithm(
     cities,
-    adjacency_mat,
-    n_population=5,
-    n_iter=20,
+    adjacency_matrix,
+    num_population=5,
+    num_iter=20,
     selectivity=0.15,
-    p_cross=0.5,
+    cross=0.5,
     p_mut=0.1,
     print_interval=100,
     return_history=False,
     verbose=False,
 ):
-    pop = init_population(cities, adjacency_mat, n_population)
+    pop = init_population(cities, adjacency_matrix, num_population)
     best = pop.best
     score = float("inf")
     history = []
-    for i in range(n_iter):
-        pop.select(n_population * selectivity)
+    for i in range(num_iter):
+        pop.select(num_population * selectivity)
         history.append(pop.score)
         if verbose:
             print("Generation {}: {}".format(i,pop.score))
@@ -159,16 +186,19 @@ def genetic_algorithm(
         if pop.score < score:
             best = pop.best
             score = pop.score
-        children = pop.mutate(p_cross, p_mut)
-        pop = Population(children, pop.adjacency_mat)
+        children = pop.mutate(cross, p_mut)
+        pop = Population(children, pop.adjacency_matrix)
     if return_history:
         return best, history
     return best
-    
+ 
+
+## calling the GA with num of population, num of iteration, crossover
 best, history = genetic_algorithm(
-    cities, adjacency_mat, n_population=200, n_iter=1000, verbose=True, return_history=True
+    cities, adjacency_matrix, num_population=1000, selectivity=0.05,
+    p_mut=0.05, cross=0.7, num_iter=9000, print_interval=500, verbose=False, return_history=True
 )
 
 for i in best:
     result.append(map_cities[i])
-print(result)
+print(result)   # Printing the order of the cities visited
